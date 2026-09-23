@@ -2,25 +2,39 @@ name: Update MACD data
 
 on:
   schedule:
-    - cron: "30 22 * * 1-5"   # 米国市場の引け後(UTC 22:30 = 日本時間 翌7:30)
-  workflow_dispatch:
+    # 実行スケジュールがある場合はここに記述（例: 毎日0時に実行）
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 手動実行用
 
-permissions:
-  contents: write
+# 競合を防ぐための同時実行制御
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   update:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: pip install yfinance pandas lxml
-      - run: python update_data.py
-      - name: Commit changes
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas lxml
+
+      - name: Run update script
+        run: |
+          python update_data.py
+
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data.json exchanges.json
-          git diff --cached --quiet || (git commit -m "update data" && git push)
+          git diff --cached --quiet || (git commit -m "update data" && git pull --rebase origin main && git push)
