@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>S&P500 MACDスクリーナー</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--fg:#1c1c1a;--mute:#6b6b66;--line:#e2e2dd;--acc:#c0392b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--card:#212120;--fg:#ecece8;--mute:#9b9b94;--line:#33332f;--acc:#ff7a6b}}
+:root[data-theme="dark"]{--bg:#161615;--card:#212120;--fg:#ecece8;--mute:#9b9b94;--line:#33332f;--acc:#ff7a6b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif}
+main{max-width:960px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:var(--mute);font-size:13px;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:end}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:4px}
+label.chk{flex-direction:row;align-items:center;gap:6px;font-size:14px;color:var(--fg)}
+input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th.l,td.l{text-align:left}
+th{cursor:pointer;font-size:12px;color:var(--mute);user-select:none}
+.neg{color:var(--acc)}
+#msg{font-size:13px;color:var(--mute);margin:0 0 8px}
+</style>
+</head>
+<body>
+<main>
+<h1>S&amp;P500 MACDスクリーナー</h1>
+<p class="sub">毎営業日、米国市場の引け後に自動更新(MACD 12,26,9・調整後終値)。</p>
+
+<div class="card row">
+<label>閾値<input type="number" id="th" value="-0.2" step="0.05" style="width:90px"></label>
+<label>指標<select id="mode"><option value="m">MACDライン</option><option value="h">ヒストグラム</option></select></label>
+<label class="chk"><input type="checkbox" id="nyse" checked>NYSE上場のみ</label>
+</div>
+
+<p id="msg">読み込み中…</p>
+<div class="card wrap"><table id="tbl"><thead><tr>
+<th class="l" data-k="t">銘柄</th><th class="l" data-k="n">社名</th><th class="l" data-k="s">セクター</th><th class="l" data-k="e">取引所</th>
+<th data-k="c">終値</th><th data-k="m">MACD</th><th data-k="h">ヒスト</th>
+</tr></thead><tbody></tbody></table></div>
+<p class="sub">テクニカル指標による抽出のみで、売買の推奨ではありません。取引所が「不明」の銘柄はNYSEのみ表示から外れます。</p>
+</main>
+<script>
+var rows=[],meta=null,sortK="m",asc=true,msg=document.getElementById("msg");
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function render(){
+  if(!meta)return;
+  var th=parseFloat(document.getElementById("th").value),k=document.getElementById("mode").value,ny=document.getElementById("nyse").checked;
+  var r=rows.filter(function(x){return x[k]<=th&&(!ny||x.e==="NYSE")});
+  r.sort(function(a,b){var x=a[sortK],y=b[sortK];return(x<y?-1:x>y?1:0)*(asc?1:-1)});
+  var up=new Date(meta.updated).toLocaleString("ja-JP");
+  msg.textContent="基準日 "+meta.asof+"(更新 "+up+")/ "+meta.count+"銘柄中 "+r.length+"銘柄が該当";
+  document.querySelector("#tbl tbody").innerHTML=r.map(function(x){
+    return "<tr><td class='l'>"+esc(x.t)+"</td><td class='l'>"+esc(x.n)+"</td><td class='l'>"+esc(x.s)+"</td><td class='l'>"+esc(x.e)+"</td><td>"+x.c.toFixed(2)+"</td><td class='"+(x.m<0?"neg":"")+"'>"+x.m.toFixed(3)+"</td><td class='"+(x.h<0?"neg":"")+"'>"+x.h.toFixed(3)+"</td></tr>";
+  }).join("");
+}
+fetch("data.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+  meta=d;rows=d.rows;render();
+}).catch(function(){msg.textContent="data.json を読み込めません。GitHub Actionsを一度実行済みか、公開URLで開いているか確認してください。"});
+["th","mode","nyse"].forEach(function(id){document.getElementById(id).addEventListener("input",render)});
+document.querySelectorAll("th").forEach(function(h){h.addEventListener("click",function(){
+  var k=h.getAttribute("data-k");asc=(sortK===k)?!asc:true;sortK=k;render();
+})});
+</script>
+</body>
+</html>
