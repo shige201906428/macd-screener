@@ -2,9 +2,9 @@ name: Update MACD data
 
 on:
   schedule:
-    # 実行スケジュールがある場合はここに記述（例: 毎日0時に実行）
-    - cron: '0 0 * * *'
-  workflow_dispatch: # 手動実行用
+    # 毎朝5:00(JST) = 毎日20:00(UTC) に実行
+    - cron: '0 20 * * *'
+  workflow_dispatch: # 手動実行ボタンも残しておきます
 
 # 競合を防ぐための同時実行制御
 concurrency:
