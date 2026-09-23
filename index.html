@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>S&P500 MACDスクリーナー</title>
 <style>
-:root{--bg:#f7f7f5;--card:#fff;--fg:#1c1c1a;--mute:#6b6b66;--line:#e2e2dd;--acc:#c0392b;
+:root{--bg:#f7f7f5;--card:#fff;--fg:#1c1c1a;--mute:#6b6b66;--line:#e2e2dd;--acc:#c0392b;--link:#2980b9;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--card:#212120;--fg:#ecece8;--mute:#9b9b94;--line:#33332f;--acc:#ff7a6b}}
-:root[data-theme="dark"]{--bg:#161615;--card:#212120;--fg:#ecece8;--mute:#9b9b94;--line:#33332f;--acc:#ff7a6b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--card:#212120;--fg:#ecece8;--mute:#9b9b94;--line:#33332f;--acc:#ff7a6b;--link:#64b5f6}}
+:root[data-theme="dark"]{--bg:#161615;--card:#212120;--fg:#ecece8;--mute:#9b9b94;--line:#33332f;--acc:#ff7a6b;--link:#64b5f6}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif}
 main{max-width:960px;margin:0 auto;padding:20px 16px 48px}
@@ -26,6 +26,13 @@ th.l,td.l{text-align:left}
 th{cursor:pointer;font-size:12px;color:var(--mute);user-select:none}
 .neg{color:var(--acc)}
 #msg{font-size:13px;color:var(--mute);margin:0 0 8px}
+
+/* チャートリンク用のスタイル追加 */
+a.symbol-link{color:var(--link);font-weight:bold;text-decoration:none}
+a.symbol-link:hover{text-decoration:underline}
+.chart-links{display:inline-flex;gap:6px;font-size:12px}
+.chart-links a{color:var(--mute);text-decoration:none;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.chart-links a:hover{background:var(--line);color:var(--fg)}
 </style>
 </head>
 <body>
@@ -42,13 +49,14 @@ th{cursor:pointer;font-size:12px;color:var(--mute);user-select:none}
 <p id="msg">読み込み中…</p>
 <div class="card wrap"><table id="tbl"><thead><tr>
 <th class="l" data-k="t">銘柄</th><th class="l" data-k="n">社名</th><th class="l" data-k="s">セクター</th><th class="l" data-k="e">取引所</th>
-<th data-k="c">終値</th><th data-k="m">MACD</th><th data-k="h">ヒスト</th>
+<th data-k="c">終値</th><th data-k="m">MACD</th><th data-k="h">ヒスト</th><th class="l">チャート</th>
 </tr></thead><tbody></tbody></table></div>
 <p class="sub">テクニカル指標による抽出のみで、売買の推奨ではありません。取引所が「不明」の銘柄はNYSEのみ表示から外れます。</p>
 </main>
 <script>
 var rows=[],meta=null,sortK="m",asc=true,msg=document.getElementById("msg");
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
 function render(){
   if(!meta)return;
   var th=parseFloat(document.getElementById("th").value),k=document.getElementById("mode").value,ny=document.getElementById("nyse").checked;
@@ -56,15 +64,34 @@ function render(){
   r.sort(function(a,b){var x=a[sortK],y=b[sortK];return(x<y?-1:x>y?1:0)*(asc?1:-1)});
   var up=new Date(meta.updated).toLocaleString("ja-JP");
   msg.textContent="基準日 "+meta.asof+"(更新 "+up+")/ "+meta.count+"銘柄中 "+r.length+"銘柄が該当";
+  
   document.querySelector("#tbl tbody").innerHTML=r.map(function(x){
-    return "<tr><td class='l'>"+esc(x.t)+"</td><td class='l'>"+esc(x.n)+"</td><td class='l'>"+esc(x.s)+"</td><td class='l'>"+esc(x.e)+"</td><td>"+x.c.toFixed(2)+"</td><td class='"+(x.m<0?"neg":"")+"'>"+x.m.toFixed(3)+"</td><td class='"+(x.h<0?"neg":"")+"'>"+x.h.toFixed(3)+"</td></tr>";
+    var ticker = esc(x.t);
+    // TradingView と Yahoo Finance のURLを生成
+    var tvUrl = "https://www.tradingview.com/symbols/" + ticker + "/";
+    var yfUrl = "https://finance.yahoo.com/quote/" + ticker + "/chart";
+
+    return "<tr>" +
+      "<td class='l'><a class='symbol-link' href='" + tvUrl + "' target='_blank' rel='noopener'>" + ticker + "</a></td>" +
+      "<td class='l'>" + esc(x.n) + "</td>" +
+      "<td class='l'>" + esc(x.s) + "</td>" +
+      "<td class='l'>" + esc(x.e) + "</td>" +
+      "<td>" + x.c.toFixed(2) + "</td>" +
+      "<td class='" + (x.m < 0 ? "neg" : "") + "'>" + x.m.toFixed(3) + "</td>" +
+      "<td class='" + (x.h < 0 ? "neg" : "") + "'>" + x.h.toFixed(3) + "</td>" +
+      "<td class='l'><div class='chart-links'>" +
+        "<a href='" + tvUrl + "' target='_blank' rel='noopener' title='TradingView'>TV</a>" +
+        "<a href='" + yfUrl + "' target='_blank' rel='noopener' title='Yahoo Finance'>Yahoo</a>" +
+      "</div></td>" +
+      "</tr>";
   }).join("");
 }
+
 fetch("data.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
   meta=d;rows=d.rows;render();
 }).catch(function(){msg.textContent="data.json を読み込めません。GitHub Actionsを一度実行済みか、公開URLで開いているか確認してください。"});
 ["th","mode","nyse"].forEach(function(id){document.getElementById(id).addEventListener("input",render)});
-document.querySelectorAll("th").forEach(function(h){h.addEventListener("click",function(){
+document.querySelectorAll("th[data-k]").forEach(function(h){h.addEventListener("click",function(){
   var k=h.getAttribute("data-k");asc=(sortK===k)?!asc:true;sortK=k;render();
 })});
 </script>
