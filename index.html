@@ -11,7 +11,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 :root[data-theme="dark"]{--bg:#161615;--card:#212120;--fg:#ecece8;--mute:#9b9b94;--line:#33332f;--acc:#ff7a6b;--up:#2ecc71;--link:#64b5f6}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif}
-main{max-width:960px;margin:0 auto;padding:20px 16px 48px}
+main{max-width:1040px;margin:0 auto;padding:20px 16px 48px}
 h1{font-size:20px;margin:0 0 4px}
 .sub{color:var(--mute);font-size:13px;margin:0 0 14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -47,6 +47,7 @@ a.symbol-link:hover{text-decoration:underline}
     <option value="m">MACDライン</option>
     <option value="h">ヒストグラム</option>
     <option value="p">前日比(%)</option>
+    <option value="p2">前々日比(%)</option>
   </select>
 </label>
 </div>
@@ -54,7 +55,7 @@ a.symbol-link:hover{text-decoration:underline}
 <p id="msg">読み込み中…</p>
 <div class="card wrap"><table id="tbl"><thead><tr>
 <th class="l" data-k="t">銘柄</th><th class="l" data-k="n">社名</th><th class="l" data-k="s">セクター</th><th class="l" data-k="e">取引所</th>
-<th data-k="c">終値</th><th data-k="p">前日比</th><th data-k="m">MACD</th><th data-k="h">ヒスト</th><th class="l">チャート</th>
+<th data-k="c">終値</th><th data-k="p">前日比</th><th data-k="p2">前々日比</th><th data-k="m">MACD</th><th data-k="h">ヒスト</th><th class="l">チャート</th>
 </tr></thead><tbody></tbody></table></div>
 <p class="sub">テクニカル指標による抽出のみで、売買の推奨ではありません。</p>
 </main>
@@ -82,10 +83,15 @@ function render(){
     var tvUrl = "https://www.tradingview.com/symbols/" + ticker + "/";
     var yfUrl = "https://finance.yahoo.com/quote/" + ticker + "/chart";
     
-    // 前日比データ (キー名: p または pct想定。無ければ0.00)
+    // 前日比データ (キー: p または pct)
     var pct = (x.p !== undefined) ? x.p : ((x.pct !== undefined) ? x.pct : 0);
     var pctClass = pct > 0 ? "pos" : (pct < 0 ? "neg" : "");
     var pctStr = (pct > 0 ? "+" : "") + pct.toFixed(2) + "%";
+
+    // 前々日比データ (キー: p2 または pct2)
+    var pct2 = (x.p2 !== undefined) ? x.p2 : ((x.pct2 !== undefined) ? x.pct2 : 0);
+    var pct2Class = pct2 > 0 ? "pos" : (pct2 < 0 ? "neg" : "");
+    var pct2Str = (pct2 > 0 ? "+" : "") + pct2.toFixed(2) + "%";
 
     return "<tr>" +
       "<td class='l'><a class='symbol-link' href='" + tvUrl + "' target='_blank' rel='noopener'>" + ticker + "</a></td>" +
@@ -94,6 +100,7 @@ function render(){
       "<td class='l'>" + esc(x.e) + "</td>" +
       "<td>" + x.c.toFixed(2) + "</td>" +
       "<td class='" + pctClass + "'>" + pctStr + "</td>" +
+      "<td class='" + pct2Class + "'>" + pct2Str + "</td>" +
       "<td class='" + (x.m < 0 ? "neg" : "") + "'>" + x.m.toFixed(3) + "</td>" +
       "<td class='" + (x.h < 0 ? "neg" : "") + "'>" + x.h.toFixed(3) + "</td>" +
       "<td class='l'><div class='chart-links'>" +
