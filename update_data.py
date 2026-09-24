@@ -1,4 +1,4 @@
-"""S&P500(約503銘柄)の直近終値時点のMACDを計算し data.json に出力する。
+"""S&P500(約503銘柄)の直近終値時点のMACDおよび前日比・前々日比を計算し data.json に出力する。
 GitHub Actions から米国市場の引け後に毎営業日実行する想定。
 MACD = 12日EMA - 26日EMA、ヒストグラム = MACD - シグナル(9日EMA)。
 """
@@ -56,13 +56,22 @@ def main() -> None:
         s = px[t].dropna()
         if len(s) < 60:
             continue
+
         m, h = macd_last(s)
+
+        # 前日比 (p) と 前々日比 (p2) の計算
+        # s.iloc[-1]: 当日終値, s.iloc[-2]: 1営業日前, s.iloc[-3]: 2営業日前
+        p = round(float((s.iloc[-1] - s.iloc[-2]) / s.iloc[-2] * 100), 2) if len(s) >= 2 else 0.0
+        p2 = round(float((s.iloc[-1] - s.iloc[-3]) / s.iloc[-3] * 100), 2) if len(s) >= 3 else 0.0
+
         rows.append({
             "t": t,
             "n": r["Security"],
             "s": r["GICS Sector"],
             "e": EX_NAME.get(ex.get(t, ""), ex.get(t, "") or "不明"),
             "c": round(float(s.iloc[-1]), 2),
+            "p": p,    # 前日比 (%)
+            "p2": p2,  # 前々日比 (%)
             "m": round(m, 4),
             "h": round(h, 4),
             "d": s.index[-1].strftime("%Y-%m-%d"),
